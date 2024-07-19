@@ -10,7 +10,6 @@ namespace UdpServer
     {
         static void Main(string[] args)
         {
-            // Ustawienia serwera
             int port = 11000;
             UdpClient server = new UdpClient(port);
             IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, port);
@@ -21,19 +20,30 @@ namespace UdpServer
             {
                 while (true)
                 {
-                    // Odbieranie danych
                     byte[] receivedBytes = server.Receive(ref remoteEP);
                     string receivedData = Encoding.ASCII.GetString(receivedBytes);
 
-                    // Deserializacja wiadomości
                     var message = JsonSerializer.Deserialize<Message>(receivedData);
-                    Console.WriteLine($"Otrzymano wiadomość od klienta: {message.Content}, Timestamp: {message.Timestamp}");
+                    Console.WriteLine($"Otrzymano komunikat: {message.Command}");
 
-                    // Wysyłanie odpowiedzi
-                    var responseMessage = new Message { Content = "Hello from server", Timestamp = DateTime.Now };
-                    string responseJson = JsonSerializer.Serialize(responseMessage);
-                    byte[] responseBytes = Encoding.ASCII.GetBytes(responseJson);
-                    server.Send(responseBytes, responseBytes.Length, remoteEP);
+                    switch (message.Command)
+                    {
+                        case "ShowHelloWorld":
+                            HandleShowHelloWorld(server, remoteEP, message);
+                            break;
+                        case "SendXaml":
+                            HandleSendXaml(server, remoteEP, message);
+                            break;
+                        case "ShowDialog":
+                            HandleShowDialog(server, remoteEP, message);
+                            break;
+                        case "ShowError":
+                            HandleShowError(server, remoteEP, message);
+                            break;
+                        default:
+                            Console.WriteLine($"Nieznany komunikat: {message.Command}");
+                            break;
+                    }
                 }
             }
             catch (Exception e)
@@ -45,11 +55,56 @@ namespace UdpServer
                 server.Close();
             }
         }
+
+        private static void HandleSendXaml(UdpClient server, IPEndPoint remoteEP, Message message)
+        {
+            Console.WriteLine("Otrzymano plik XAML, przekazywanie do klienta docelowego");
+            ForwardToTargetClient(message);
+        }
+
+        private static void HandleShowHelloWorld(UdpClient server, IPEndPoint remoteEP, Message message)
+        {
+            Console.WriteLine($"Przekazywanie wiadomości ShowHelloWorld do klienta docelowego");
+            ForwardToTargetClient(message);
+        }
+
+        private static void HandleShowDialog(UdpClient server, IPEndPoint remoteEP, Message message)
+        {
+            Console.WriteLine($"Przekazywanie wiadomości ShowDialog do klienta docelowego");
+            ForwardToTargetClient(message);
+        }
+
+        private static void HandleShowError(UdpClient server, IPEndPoint remoteEP, Message message)
+        {
+            Console.WriteLine($"Przekazywanie wiadomości ShowError do klienta docelowego");
+            ForwardToTargetClient(message);
+        }
+
+        private static void ForwardToTargetClient(Message message)
+        {
+            string targetClientAddress = "127.0.0.1"; // adres IP klienta docelowego
+            int targetClientPort = 11001;
+
+            using (UdpClient client = new UdpClient())
+            {
+                try
+                {
+                    string messageJson = JsonSerializer.Serialize(message);
+                    byte[] messageBytes = Encoding.ASCII.GetBytes(messageJson);
+                    client.Send(messageBytes, messageBytes.Length, targetClientAddress, targetClientPort);
+                    Console.WriteLine($"Przekazano wiadomość {message.Command} do klienta docelowego na porcie {targetClientPort}");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Błąd przekazywania wiadomości do klienta docelowego: " + e.ToString());
+                }
+            }
+        }
     }
 
     public class Message
     {
-        public string Content { get; set; }
-        public DateTime Timestamp { get; set; }
+        public string Command { get; set; }
+        public object Data { get; set; }
     }
 }
