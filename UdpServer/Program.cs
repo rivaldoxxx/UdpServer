@@ -40,6 +40,18 @@ namespace UdpServer
                         case "ShowError":
                             HandleShowError(server, remoteEP, message);
                             break;
+                        case "RequestProductConfirmation":
+                            ForwardToTargetClient(message);
+                            break;
+                        case "AllProductsConfirmed":
+                            ForwardToClientMaui(message);
+                            break;
+                        case "LoggedIn":
+                            HandleLoggedIn(server, remoteEP, message);
+                            break;
+                        case "OptionOne":
+                            HandleOptionOne(server, remoteEP, message);
+                            break;
                         default:
                             Console.WriteLine($"Nieznany komunikat: {message.Command}");
                             break;
@@ -54,6 +66,11 @@ namespace UdpServer
             {
                 server.Close();
             }
+        }
+
+        private static void HandleOptionOne(UdpClient server, IPEndPoint remoteEP, Message message)
+        {
+            ForwardToTargetClient(message);
         }
 
         private static void HandleSendXaml(UdpClient server, IPEndPoint remoteEP, Message message)
@@ -80,9 +97,37 @@ namespace UdpServer
             ForwardToTargetClient(message);
         }
 
+        private static void HandleLoggedIn(UdpClient server, IPEndPoint remoteEP, Message message)
+        {
+            Console.WriteLine($"Przekazywanie wiadomości LoggedIn do klienta docelowego");
+            ForwardToTargetClient(message);
+        }
+
+        private static void ForwardToClientMaui(Message message)
+        {
+            string targetClientAddress = "127.0.0.1";
+            int targetClientPort = 12001; 
+
+
+            using (UdpClient client = new UdpClient())
+            {
+                try
+                {
+                    string messageJson = JsonSerializer.Serialize(message);
+                    byte[] messageBytes = Encoding.ASCII.GetBytes(messageJson);
+                    client.Send(messageBytes, messageBytes.Length, targetClientAddress, targetClientPort);
+                    Console.WriteLine($"Przekazano wiadomość {message.Command} do klienta wysyłającego na porcie {targetClientPort}");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Błąd przekazywania wiadomości do klienta wysyłającego: " + e.ToString());
+                }
+            }
+        }
+
         private static void ForwardToTargetClient(Message message)
         {
-            string targetClientAddress = "127.0.0.1"; // adres IP klienta docelowego
+            string targetClientAddress = "127.0.0.1";
             int targetClientPort = 11001;
 
             using (UdpClient client = new UdpClient())
