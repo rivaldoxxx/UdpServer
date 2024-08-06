@@ -46,11 +46,20 @@ namespace UdpServer
                         case "AllProductsConfirmed":
                             ForwardToClientMaui(message);
                             break;
+                        case "AssignSlot":
+                            HandleAssignSlot(server, remoteEP, message);
+                            break;
+                        case "ProductsPlaced":
+                            HandleProductsPlaced(server, remoteEP, message);
+                            break;
                         case "LoggedIn":
                             HandleLoggedIn(server, remoteEP, message);
                             break;
                         case "OptionOne":
                             HandleOptionOne(server, remoteEP, message);
+                            break;
+                        case "ProductAssignedToSlot":
+                            ForwardToClientMaui(message);
                             break;
                         default:
                             Console.WriteLine($"Nieznany komunikat: {message.Command}");
@@ -66,6 +75,12 @@ namespace UdpServer
             {
                 server.Close();
             }
+        }
+
+        private static void HandleProductsPlaced(UdpClient server, IPEndPoint remoteEP, Message message)
+        {
+            Console.WriteLine("Magazynier potwierdził umieszczenie produktów w wózku.");
+            ForwardToTargetClient(message);
         }
 
         private static void HandleOptionOne(UdpClient server, IPEndPoint remoteEP, Message message)
@@ -102,11 +117,15 @@ namespace UdpServer
             Console.WriteLine($"Przekazywanie wiadomości LoggedIn do klienta docelowego");
             ForwardToTargetClient(message);
         }
-
+        private static void HandleAssignSlot(UdpClient server, IPEndPoint remoteEP, Message message)
+        {
+            Console.WriteLine("Przypisano slot do produktu, przekazywanie do klienta docelowego");
+            ForwardToTargetClient(message);
+        }
         private static void ForwardToClientMaui(Message message)
         {
-            string targetClientAddress = "127.0.0.1";
-            int targetClientPort = 12001; 
+            string targetClientAddress = "127.0.0.1"; // adres IP klienta wysyłającego
+            int targetClientPort = 12001; // Nowy port klienta wysyłającego
 
 
             using (UdpClient client = new UdpClient())
@@ -127,7 +146,7 @@ namespace UdpServer
 
         private static void ForwardToTargetClient(Message message)
         {
-            string targetClientAddress = "127.0.0.1";
+            string targetClientAddress = "127.0.0.1"; // adres IP klienta docelowego
             int targetClientPort = 11001;
 
             using (UdpClient client = new UdpClient())
